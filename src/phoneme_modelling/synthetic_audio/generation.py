@@ -154,7 +154,8 @@ class SyntheticAudioGenerator(ABC):
                     file_path=str(sound_file_path),
                     target_phoneme_text=phoneme_text,
                     actual_phoneme_text=phoneme_text,
-                    actual_phoneme_ipa=phoneme_ipa
+                    actual_phoneme_ipa=phoneme_ipa,
+                    distortion_intensity=0.0
                 )
                 generated_metadata.append(generated_audio_info)
         return current_audio_count, generated_metadata
@@ -225,7 +226,8 @@ class SyntheticAudioGenerator(ABC):
                         file_path=str(sound_file_path),
                         target_phoneme_text=from_phoneme,
                         actual_phoneme_text=dominant_phoneme_text,
-                        actual_phoneme_ipa=distortion_ipa
+                        actual_phoneme_ipa=distortion_ipa,
+                        distortion_intensity=distortion_intensity
                     )
                     generated_metadata.append(generated_audio_info)
         return current_audio_count, generated_metadata

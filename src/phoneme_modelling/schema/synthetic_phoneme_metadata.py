@@ -8,3 +8,4 @@ class SyntheticPhonemeMetadata(BaseModel):
     target_phoneme_text: str
     actual_phoneme_text: str
     actual_phoneme_ipa: str
+    distortion_intensity: float

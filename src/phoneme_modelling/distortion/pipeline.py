@@ -51,11 +51,12 @@ class AudioDistortionPipeline():
                 sound_number = f"{current_audio_count:0{number_of_digits}d}"
                 target_file_name = f"{sound_number}_{base_file_name}_{distortion_name}_distortion.wav"
                 target_file_path = Path(os.path.join(target_folder, target_file_name))
+                distortion_intensity = 0.5
                 has_generated, distorted_ipa = distorter.distort(
                     original_file_path=original_file_path,
                     original_phoneme_text=original_phoneme_text,
                     original_phoneme_ipa=original_phoneme_ipa,
-                    distortion_intensity=0.5,
+                    distortion_intensity=distortion_intensity,
                     distorted_file_path=target_file_path,
                 )
                 if not has_generated:
@@ -68,7 +69,8 @@ class AudioDistortionPipeline():
                     file_path=str(target_file_path),
                     target_phoneme_text=audio_info.target_phoneme_text,
                     actual_phoneme_text=original_phoneme_text,
-                    actual_phoneme_ipa=distorted_ipa
+                    actual_phoneme_ipa=distorted_ipa,
+                    distortion_intensity=distortion_intensity
                 )
                 distortion_metadata.append(metadata)
         distortion_metadata_dict = [entry.model_dump() for entry in distortion_metadata]
