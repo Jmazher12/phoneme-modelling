@@ -30,10 +30,12 @@ class AudioDistortionPipeline():
     ) -> None:
         distortion_metadata: list[SyntheticPhonemeMetadata] = []
         distorter_configs = pipeline_config.distorter_configs
+        run_config = pipeline_config.distortion_application_config
         if distorter_configs is None:
             return
         distorters = cls.build_distorters(distorter_configs)
         number_of_digits = pipeline_config.number_of_digits
+        number_of_intensity_digits = len(str(len(run_config.distortion_intensitites)))
         audio_metadata: list[dict] = pd.read_csv(audio_metadata_file_path).to_dict(orient="records")
         for audio_dict in audio_metadata:
             audio_info = SyntheticPhonemeMetadata.model_validate(audio_dict)
@@ -48,31 +50,34 @@ class AudioDistortionPipeline():
                 if valid_phonemes is not None and original_phoneme_text not in valid_phonemes:
                     continue
                 distortion_name = distorter.get_name()
-                sound_number = f"{current_audio_count:0{number_of_digits}d}"
-                target_file_name = f"{sound_number}_{base_file_name}_{distortion_name}_distortion.wav"
-                target_file_path = Path(os.path.join(target_folder, target_file_name))
-                distortion_intensity = 0.5
-                has_generated, distorted_ipa = distorter.distort(
-                    original_file_path=original_file_path,
-                    original_phoneme_text=original_phoneme_text,
-                    original_phoneme_ipa=original_phoneme_ipa,
-                    distortion_intensity=distortion_intensity,
-                    distorted_file_path=target_file_path,
-                )
-                if not has_generated:
-                    continue
-                current_audio_count += 1
-                if distorted_ipa is None:
-                    distorted_ipa = original_phoneme_ipa
-                metadata = SyntheticPhonemeMetadata(
-                    file_name=target_file_name,
-                    file_path=str(target_file_path),
-                    target_phoneme_text=audio_info.target_phoneme_text,
-                    actual_phoneme_text=original_phoneme_text,
-                    actual_phoneme_ipa=distorted_ipa,
-                    distortion_intensity=distortion_intensity
-                )
-                distortion_metadata.append(metadata)
+                intensity_count = 1
+                for intensity in run_config.distortion_intensitites:
+                    sound_number = f"{current_audio_count:0{number_of_digits}d}"
+                    intensity_number = f"{intensity_count:0{number_of_intensity_digits}d}"
+                    target_file_name = f"{sound_number}_{base_file_name}_{distortion_name}_distortion_{intensity_number}.wav"
+                    target_file_path = Path(os.path.join(target_folder, target_file_name))
+                    has_generated, distorted_ipa = distorter.distort(
+                        original_file_path=original_file_path,
+                        original_phoneme_text=original_phoneme_text,
+                        original_phoneme_ipa=original_phoneme_ipa,
+                        distortion_intensity=intensity,
+                        distorted_file_path=target_file_path,
+                    )
+                    if not has_generated:
+                        continue
+                    current_audio_count += 1
+                    intensity_count += 1
+                    if distorted_ipa is None:
+                        distorted_ipa = original_phoneme_ipa
+                    metadata = SyntheticPhonemeMetadata(
+                        file_name=target_file_name,
+                        file_path=str(target_file_path),
+                        target_phoneme_text=audio_info.target_phoneme_text,
+                        actual_phoneme_text=original_phoneme_text,
+                        actual_phoneme_ipa=distorted_ipa,
+                        distortion_intensity=intensity
+                    )
+                    distortion_metadata.append(metadata)
         distortion_metadata_dict = [entry.model_dump() for entry in distortion_metadata]
         audio_metadata.extend(distortion_metadata_dict)
         DataFrame(audio_metadata).to_csv(audio_metadata_file_path, index=False)
