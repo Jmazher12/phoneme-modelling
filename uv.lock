@@ -1491,6 +1491,7 @@ dependencies = [
     { name = "librosa" },
     { name = "onnxruntime" },
     { name = "pandas" },
+    { name = "praat-parselmouth" },
     { name = "pydantic" },
     { name = "torch" },
     { name = "transformers" },
@@ -1503,6 +1504,7 @@ requires-dist = [
     { name = "librosa", specifier = ">=1.0.0" },
     { name = "onnxruntime", specifier = ">=1.31.1" },
     { name = "pandas", specifier = ">=3.1.0" },
+    { name = "praat-parselmouth", specifier = ">=0.4.7" },
     { name = "pydantic", specifier = ">=2.14.1" },
     { name = "torch", specifier = ">=2.14.1" },
     { name = "transformers", specifier = ">=5.21.0" },
@@ -1529,6 +1531,31 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/83/43/85ef45e8b36c6a48546af7b266592dc32d7f67837a6514d111bced6d7d75/pooch-1.9.0.tar.gz", hash = "sha256:de46729579b9857ffd3e741987a2f6d5e0e03219892c167c6578c0091fb511ed", size = 61788, upload-time = "2026-01-30T19:15:09.649Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/2d/d4bf65e47cea8ff2c794a600c4fd1273a7902f268757c531e0ee9f18aa58/pooch-1.9.0-py3-none-any.whl", hash = "sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b", size = 67175, upload-time = "2026-01-30T19:15:08.36Z" },
+]
+
+[[package]]
+name = "praat-parselmouth"
+version = "0.4.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4f/28/2c1204fe3e7aeb6942051ff6776e31da52c7ab5b7df2ca438f371bd60d8a/praat_parselmouth-0.4.7.tar.gz", hash = "sha256:6dd81d246ce1eef5fd93d8cbdaf1bef61ca40ef1d2fc12aa23996a28071181e6", size = 22526491, upload-time = "2025-11-27T20:08:58.276Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/1c/a772c9b064a935d40505699e69c6c7c513fbaa4725784bfef7fe36f47270/praat_parselmouth-0.4.7-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:97a2f9225fe63b9d6ea4fd2787983faf4ad46b83b3d772abbc8b066e9ef8559f", size = 17673409, upload-time = "2025-11-27T20:02:33.031Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/a9/5e38d5ce459795c73600dedca72912955a299eefc4cbd0759529d30fe488/praat_parselmouth-0.4.7-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:6ec2b7c3d59b41794923bf6ca7dd97f64bc295b1a4c7835e732add2cb0fabce9", size = 9051832, upload-time = "2025-11-27T20:02:35.545Z" },
+    { url = "https://files.pythonhosted.org/packages/53/16/ac1b44f6247d3abd86fc66634a32f56d43cc58f7314db81c40fd67fa2afd/praat_parselmouth-0.4.7-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:02b2b351e9dce18fb795ef91ce92107343183cff2cd8e56b40050016a45c7778", size = 8635340, upload-time = "2025-11-27T20:02:38.939Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/e4/821007a09ca572ae4d4e0f431b925d47aa5ad41fea21de2f6283f7ef8e5c/praat_parselmouth-0.4.7-cp313-cp313-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:b6430856750467b8dc84a7dec87ca52a43dc6e2c44a4f1864e8f01f32901ceeb", size = 10711649, upload-time = "2025-11-27T20:02:42.222Z" },
+    { url = "https://files.pythonhosted.org/packages/48/b8/4eb427cc8d03156990360cf21e2e3f9180a8c0a0a03698c9d2dd36c54e0c/praat_parselmouth-0.4.7-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:c22d9f80984e91162e3be13109637f5dfe10d2ca4d3b15edd7e782550ba627f1", size = 10749436, upload-time = "2025-11-27T20:02:45.746Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/02/082031f1d6980aaeff05984225a6feadd948047ed6f4cbc0b00281a33950/praat_parselmouth-0.4.7-cp313-cp313-win32.whl", hash = "sha256:768b603cccd1b98db057aed3af52ba26c7a930ac4d48c2371bf6bb6702d7a068", size = 8125197, upload-time = "2025-11-27T20:02:49.291Z" },
+    { url = "https://files.pythonhosted.org/packages/83/35/089a5a8dd45800dcbaa23a414d6f4f5ec29a46fec04d654923efdb3a6746/praat_parselmouth-0.4.7-cp313-cp313-win_amd64.whl", hash = "sha256:e3bfe1fc8d0f0252766978affa2e7f9b68876540688dfb9c56535fcaa2f4776a", size = 8958175, upload-time = "2025-11-27T20:02:53.583Z" },
+    { url = "https://files.pythonhosted.org/packages/27/a6/50ab4dfee275a55cfe72383f861631f65753eac83b4dc6674ab173f04324/praat_parselmouth-0.4.7-cp314-cp314-macosx_10_15_universal2.whl", hash = "sha256:f022783e8c7fbc3985194d62db64a9ccde60a3ce744633dab8b55f594c12f625", size = 17668901, upload-time = "2025-11-27T20:03:01.486Z" },
+    { url = "https://files.pythonhosted.org/packages/94/87/03cef2fc1365000c0bd20f87bf282b3a913a39a2cd9edfc9fb3239c85f4c/praat_parselmouth-0.4.7-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:d656eb4a18edcf52735e95b0a68c32edf7202c591c35afae74cfc54bead88277", size = 9049021, upload-time = "2025-11-27T20:03:21.658Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/8d/bb1121fd50ddcecd9e5d2d150c7a8656968c984e3562b623c64b02d90b10/praat_parselmouth-0.4.7-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:998138bf2acb15ae329caa217d523965b897417a1a2df130a2ecf41b664bfbf1", size = 8634455, upload-time = "2025-11-27T20:03:26.958Z" },
+    { url = "https://files.pythonhosted.org/packages/89/06/00003910356fb74284e9eb58c64bea0d0c85311061e7e39c080e370a86ef/praat_parselmouth-0.4.7-cp314-cp314-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:313710a579d47effa50652d1cb3e335d926c1c0d1cea13e62dde8041676498f0", size = 10711434, upload-time = "2025-11-27T20:03:30.22Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/fa/a9a2bb835c3c13e8212093f060831323c0cb1172223ba3af93f66212e4e0/praat_parselmouth-0.4.7-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:528cec1f4d2bbe02ed58fc6575071e9ccbf0d7ece815613c05d516e076b58a68", size = 10748994, upload-time = "2025-11-27T20:03:33.313Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/ef/399a0f8b0c64d8910dc75826ba8c5fbb9490fa4b2e0777fbda7293db55d5/praat_parselmouth-0.4.7-cp314-cp314-win32.whl", hash = "sha256:71ff8990d454d0fa164aef269d1b2acccb6778d5c26a303d7e668b053a81af56", size = 8232788, upload-time = "2025-11-27T20:03:36.432Z" },
+    { url = "https://files.pythonhosted.org/packages/38/d4/bbc8153bde9812b33714c210b41ddb50d5af56a6d155f23ee44a01724146/praat_parselmouth-0.4.7-cp314-cp314-win_amd64.whl", hash = "sha256:aa467b5839fa9dd6e1aff146a80e80e157aedc93825772dfb4258f772c062ebb", size = 9110034, upload-time = "2025-11-27T20:03:38.516Z" },
 ]
 
 [[package]]

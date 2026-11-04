@@ -43,7 +43,8 @@
             "voices": ["Kore"],
             "live": true,
             "prompts_file": "config/gemini_prompts.csv"
-        }
+        },
+        "openai": null
     },
     "distorter_configs": {
         "debug": null
