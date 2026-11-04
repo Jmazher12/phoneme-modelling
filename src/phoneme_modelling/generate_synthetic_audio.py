@@ -15,6 +15,7 @@ def main() -> None:
     parser.add_argument("--output_folder", default="phonemes")
     parser.add_argument("--output_metadata_path", default="data/phonemes_metadata.csv")
     parser.add_argument("--evaluation_output_path", default="data/evaluation_results.csv")
+    parser.add_argument("--mode", choices=["all", "generate", "eval"], default="all")
     args = parser.parse_args()
 
     config_path = Path(args.config_path)
@@ -29,9 +30,11 @@ def main() -> None:
         config_dict = json.load(config_file)
         config = PhonemePipelineConfig.model_validate(config_dict)
 
-    synthetic_audio_count = SyntheticAudioPipeline.run(config, output_folder, output_metadata_path)
-    AudioDistortionPipeline.run(config, output_folder, output_metadata_path, synthetic_audio_count)
-    AudioEvaluationPipeline.run(config, output_metadata_path, evaluation_output_path)
+    if args.mode in ["all", "generate"]:
+        synthetic_audio_count = SyntheticAudioPipeline.run(config, output_folder, output_metadata_path)
+        AudioDistortionPipeline.run(config, output_folder, output_metadata_path, synthetic_audio_count)
+    if args.mode in ["all", "eval"]:
+        AudioEvaluationPipeline.run(config, output_metadata_path, evaluation_output_path)
 
 if __name__ == "__main__":
     main()

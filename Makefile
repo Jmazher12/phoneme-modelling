@@ -69,5 +69,11 @@ clean-output:
 	rm -rf data
 	rm -rf phonemes
 
-generate:
+run:
 	uv run python src/phoneme_modelling/generate_synthetic_audio.py
+
+generate:
+	uv run python src/phoneme_modelling/generate_synthetic_audio.py --mode generate
+
+eval:
+	uv run python src/phoneme_modelling/generate_synthetic_audio.py --mode eval
