@@ -183,6 +183,8 @@ class AudioDistortionPipeline():
         metadata = SyntheticPhonemeMetadata(
             file_name=target_file_name,
             file_path=str(target_file_path),
+            model=audio_info.model,
+            voice=audio_info.voice,
             target_phoneme_text=audio_info.target_phoneme_text,
             actual_phoneme_text=original_phoneme_text,
             actual_phoneme_ipa=distorted_ipa,

@@ -154,6 +154,8 @@ class SyntheticAudioGenerator(ABC):
                 generated_audio_info = SyntheticPhonemeMetadata(
                     file_name=sound_file_name,
                     file_path=str(sound_file_path),
+                    model=self.get_config_name(),
+                    voice=voice.get_voice_nickname(),
                     target_phoneme_text=phoneme_text,
                     actual_phoneme_text=phoneme_text,
                     actual_phoneme_ipa=phoneme_ipa,
@@ -229,6 +231,8 @@ class SyntheticAudioGenerator(ABC):
                     generated_audio_info = SyntheticPhonemeMetadata(
                         file_name=sound_file_name,
                         file_path=str(sound_file_path),
+                        model=self.get_config_name(),
+                        voice=voice.get_voice_nickname(),
                         target_phoneme_text=from_phoneme,
                         actual_phoneme_text=dominant_phoneme_text,
                         actual_phoneme_ipa=distortion_ipa,
