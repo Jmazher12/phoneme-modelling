@@ -38,3 +38,7 @@ class DebugGenerator(SyntheticAudioGenerator):
     @classmethod
     def get_config_name(cls) -> str:
         return "debug"
+
+    def allows_retries(self) -> bool:
+        """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
+        return False

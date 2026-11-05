@@ -17,6 +17,10 @@ class DebugDistorter(AudioDistorter):
         """Returns list of phoneme texts which this distortion can be used for, returns null if this is valid for any audio"""
         return ["r", "th_voiceless"]
 
+    def allows_retries(self) -> bool:
+        """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
+        return False
+
     def distort(
         self, 
         original_file_path: Path,

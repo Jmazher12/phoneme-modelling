@@ -22,6 +22,11 @@ class AudioDistorter(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def allows_retries(self) -> bool:
+        """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
+        raise NotImplementedError()
+
+    @abstractmethod
     def distort(
         self, 
         original_file_path: Path,

@@ -120,6 +120,11 @@ class SyntheticAudioGenerator(ABC):
         """Returns the name used for the configs for the class."""
         raise NotImplementedError()
 
+    @abstractmethod
+    def allows_retries(self) -> bool:
+        """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
+        raise NotImplementedError()
+
     @staticmethod
     def __text_to_ipa(phoneme_text: str):
         if phoneme_text not in VALID_SOUND_TEXTS:

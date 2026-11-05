@@ -184,3 +184,7 @@ class GeminiAudioGenerator(SyntheticAudioGenerator):
     @classmethod
     def get_config_name(cls) -> str:
         return "gemini"
+
+    def allows_retries(self) -> bool:
+        """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
+        return True
