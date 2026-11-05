@@ -76,11 +76,11 @@ class SyntheticAudioGenerationVoice(ABC):
         distort_to_ipa: Optional[str] = None,
     ):
         if not target_file_path or os.path.exists(target_file_path):
-            raise ValueError(f"Invalid target_file_path for synthetic audio generation sent to {self.__name__}. target_file_path: {target_file_path}")
+            raise ValueError(f"Invalid target_file_path for synthetic audio generation sent to {self.__class__}. target_file_path: {target_file_path}")
         if not text:
-            raise ValueError(f"Invalid text for synthetic audio generation sent to {self.__name__}. text: {text}")
+            raise ValueError(f"Invalid text for synthetic audio generation sent to {self.__class__}. text: {text}")
         if not ipa or ipa not in VALID_IPA_STRINGS:
-            raise ValueError(f"Invalid ipa for synthetic audio generation sent to {self.__name__}. ipa: {ipa}")
+            raise ValueError(f"Invalid ipa for synthetic audio generation sent to {self.__class__}. ipa: {ipa}")
         distortion_params = (distortion_intensity, distort_to_text, distort_to_ipa)
         if 0 < sum(v is not None for v in distortion_params) < 3:
             raise ValueError(
@@ -91,7 +91,7 @@ class SyntheticAudioGenerationVoice(ABC):
         if distortion_intensity is not None and not (0.0 <= distortion_intensity <= 1.0):
             raise ValueError(f"distortion_intensity must be between 0.0 and 1.0. distortion_intensity: {distortion_intensity}")
         if distort_to_ipa is not None and distort_to_ipa not in VALID_IPA_STRINGS:
-            raise ValueError(f"Invalid distort_to_ipa for synthetic audio generation sent to {self.__name__}. distort_to_ipa: {distort_to_ipa}")
+            raise ValueError(f"Invalid distort_to_ipa for synthetic audio generation sent to {self.__class__}. distort_to_ipa: {distort_to_ipa}")
 
 class SyntheticAudioGenerator(ABC):
 
