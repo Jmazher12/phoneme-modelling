@@ -35,5 +35,17 @@
             "ref_dir": "inputs/reference_recordings",
             "prompts_file": "config/prompts.csv"
         }
+    },
+    "distorter_configs": {
+        "r_to_w": null,
+        "r_to_w_matched": null,
+        "s_to_z": null,
+        "s_to_z_matched": null,
+        "p_to_b": null,
+        "p_to_b_matched": null,
+        "th_voiced_to_th_voiceless": null,
+        "th_voiced_to_th_voiceless_matched": null,
+        "m_to_n": null,
+        "m_to_n_matched": null
     }
 }
