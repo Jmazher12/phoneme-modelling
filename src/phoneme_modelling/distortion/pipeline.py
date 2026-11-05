@@ -10,6 +10,8 @@ from phoneme_modelling.distortion.distorter import AudioDistorter
 from phoneme_modelling.distortion.distorter_factory import AudioDistorterFactory
 from phoneme_modelling.schema.phoneme_pipeline_config import DistortionApplicationConfig, PhonemePipelineConfig
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
+from phoneme_modelling.util.audio_validator import PhonemeAudioValidator
+from phoneme_modelling.util.retry_mechanism import GenerationRetryMechanism
 
 
 class AudioDistortionPipeline():
@@ -30,7 +32,6 @@ class AudioDistortionPipeline():
     ) -> None:
         distortion_metadata: list[SyntheticPhonemeMetadata] = []
         distorter_configs = pipeline_config.distorter_configs
-        run_config = pipeline_config.distortion_application_config
         if distorter_configs is None:
             return
         distorters = cls.build_distorters(distorter_configs)
@@ -41,7 +42,7 @@ class AudioDistortionPipeline():
             current_audio_count, metadatas = cls.__generate_distortions_for_audio(
                 audio_info=audio_info,
                 distorters=distorters,
-                run_config=run_config,
+                pipeline_config=pipeline_config,
                 target_folder=target_folder,
                 number_of_digits=number_of_digits,
                 current_audio_count=current_audio_count
@@ -56,7 +57,7 @@ class AudioDistortionPipeline():
         cls,
         audio_info: SyntheticPhonemeMetadata,
         distorters: list[AudioDistorter],
-        run_config: DistortionApplicationConfig,
+        pipeline_config: PhonemePipelineConfig,
         target_folder: Path,
         number_of_digits: int,
         current_audio_count: int
@@ -70,10 +71,12 @@ class AudioDistortionPipeline():
             valid_phonemes = distorter.is_restricted_to_phonemes()
             if valid_phonemes is not None and original_phoneme_text not in valid_phonemes:
                 continue
+            retry_mechanism = cls.__build_retry_mechanism(pipeline_config, distorter)
             current_audio_count, metadatas = cls.__generate_different_distortion_intensities(
+                retry_mechanism=retry_mechanism,
                 audio_info=audio_info,
                 distorter=distorter,
-                run_config=run_config,
+                run_config=pipeline_config.distortion_application_config,
                 target_folder=target_folder,
                 number_of_digits=number_of_digits,
                 current_audio_count=current_audio_count
@@ -81,9 +84,21 @@ class AudioDistortionPipeline():
             generated_metadata.extend(metadatas)
         return current_audio_count, generated_metadata
 
+    @staticmethod
+    def __build_retry_mechanism(
+        pipeline_config: PhonemePipelineConfig,
+        distorter: AudioDistorter
+    ) -> GenerationRetryMechanism:
+        config = pipeline_config.validation_config
+        allow_retries = distorter.allows_retries()
+        validator = PhonemeAudioValidator(config)
+        retry_mechanism = GenerationRetryMechanism(config, validator, allow_retries)
+        return retry_mechanism
+
     @classmethod
     def __generate_different_distortion_intensities(
         cls,
+        retry_mechanism: GenerationRetryMechanism,
         audio_info: SyntheticPhonemeMetadata,
         distorter: AudioDistorter,
         run_config: DistortionApplicationConfig,
@@ -99,6 +114,7 @@ class AudioDistortionPipeline():
             intensity_number = f"{intensity_count:0{number_of_intensity_digits}d}"
             has_generated, metadata = cls.__apply_distorter(
                 distorter=distorter,
+                retry_mechanism=retry_mechanism,
                 intensity=intensity,
                 audio_info=audio_info,
                 target_folder=target_folder,
@@ -116,6 +132,7 @@ class AudioDistortionPipeline():
     def __apply_distorter(
         cls,
         distorter: AudioDistorter,
+        retry_mechanism: GenerationRetryMechanism,
         intensity: float,
         audio_info: SyntheticPhonemeMetadata,
         target_folder: Path,
@@ -127,13 +144,18 @@ class AudioDistortionPipeline():
         original_phoneme_ipa = audio_info.actual_phoneme_ipa
         target_file_name = cls.__build_file_name(distorter, audio_info, sound_number, intensity_number)
         target_file_path = Path(os.path.join(target_folder, target_file_name))
-        has_generated, distorted_ipa = distorter.distort(
-            original_file_path=original_file_path,
-            original_phoneme_text=original_phoneme_text,
-            original_phoneme_ipa=original_phoneme_ipa,
-            distortion_intensity=intensity,
-            distorted_file_path=target_file_path,
-        )
+        has_generated = False
+        distorted_ipa = None
+        for _ in retry_mechanism.attempts(target_file_path):
+            has_generated, distorted_ipa = distorter.distort(
+                original_file_path=original_file_path,
+                original_phoneme_text=original_phoneme_text,
+                original_phoneme_ipa=original_phoneme_ipa,
+                distortion_intensity=intensity,
+                distorted_file_path=target_file_path,
+            )
+            if not has_generated:
+                break
         if distorted_ipa is None:
             distorted_ipa = original_phoneme_ipa
         metadata = SyntheticPhonemeMetadata(
