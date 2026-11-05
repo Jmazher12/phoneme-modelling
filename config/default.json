@@ -79,6 +79,7 @@
     },
     "evaluator_configs": {
         "wav2vec2": null,
+        "wav2vec2_espeak": null,
         "zipa": null
     }
 }

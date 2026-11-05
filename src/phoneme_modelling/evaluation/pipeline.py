@@ -8,6 +8,7 @@ from phoneme_modelling.evaluation.evaluators.debug import DebugEvaluator
 from phoneme_modelling.evaluation.evaluator import AudioEvaluator
 from phoneme_modelling.evaluation.evaluator_factory import AudioEvaluatorFactory
 from phoneme_modelling.evaluation.evaluators.wav2vec2 import Wav2Vec2Evaluator
+from phoneme_modelling.evaluation.evaluators.wav2vec2_espeak import Wav2Vec2EspeakEvaluator
 from phoneme_modelling.evaluation.evaluators.zipa import ZipaEvaluator
 from phoneme_modelling.schema.phoneme_evaluation import PhonemeEvaluationOutput
 from phoneme_modelling.schema.phoneme_pipeline_config import PhonemePipelineConfig
@@ -20,6 +21,7 @@ class AudioEvaluationPipeline():
     def build_evaluators(configs: dict[str, Any]) -> list[AudioEvaluator]:
         factory = AudioEvaluatorFactory()
         factory.register(Wav2Vec2Evaluator, None)
+        factory.register(Wav2Vec2EspeakEvaluator, None)
         factory.register(ZipaEvaluator, None)
         return factory.generate(configs)
 
