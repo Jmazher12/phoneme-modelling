@@ -1,7 +1,7 @@
-import wave
 from pathlib import Path
 
 from phoneme_modelling.schema.phoneme_pipeline_config import PhonemeValidationConfig
+from phoneme_modelling.util.audio_inspector import AudioInspector
 
 
 
@@ -14,12 +14,6 @@ class PhonemeAudioValidator:
     def __init__(self, config: PhonemeValidationConfig):
         self.config = config
 
-    def _get_wav_duration(self, file_path: Path) -> float:
-        with wave.open(str(file_path), "rb") as audio_file:
-            frames = audio_file.getnframes()
-            rate = audio_file.getframerate()
-            return frames / float(rate)
-
     def validate(self, file_path: Path) -> bool:
         """
         Validates the generated audio file.
@@ -27,7 +21,7 @@ class PhonemeAudioValidator:
         """
         if not self.__validate_audio_exists(file_path):
             return False
-        duration = self._get_wav_duration(file_path)
+        duration = AudioInspector.get_info(file_path).duration  
         if not self.__validate_audio_is_long_enough(duration):
             return False
         if not self.__validate_audio_is_short_enough(duration):
@@ -40,7 +34,7 @@ class PhonemeAudioValidator:
                 raise AudioValidationError(f"Missing generated file at {file_path}")
             return False
         try:
-            self._get_wav_duration(file_path)
+            AudioInspector.get_info(file_path)
         except Exception as e:
             if self.config.interrupt_generation_on_missing_file:
                 raise AudioValidationError(f"Failed to read .wav file at {file_path}: {e}")

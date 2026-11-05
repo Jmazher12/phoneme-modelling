@@ -10,6 +10,7 @@ from phoneme_modelling.phonemes import TEXT_TO_IPA, VALID_IPA_STRINGS, VALID_SOU
 from phoneme_modelling.schema.phoneme_distortion import PhonemeDistortionRequest
 from phoneme_modelling.schema.phoneme_pipeline_config import PhonemePipelineConfig, PhonemeValidationConfig
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
+from phoneme_modelling.util.audio_inspector import AudioInspector
 from phoneme_modelling.util.audio_validator import PhonemeAudioValidator
 from phoneme_modelling.util.retry_mechanism import GenerationRetryMechanism
 
@@ -20,11 +21,6 @@ class SyntheticAudioGenerationVoice(ABC):
     @abstractmethod
     def get_voice_nickname(self) -> str:
         raise NotImplementedError()
-
-    def get_generation_info(self) -> dict:
-        """Optional details about the last successful _generate_audio call (model, voice, take, prompt, transcript, ...),
-        added to that clip's metadata. Keys must be fields of SyntheticPhonemeMetadata."""
-        return getattr(self, "_generation_info", {})
 
     @abstractmethod
     def _generate_audio(
@@ -154,6 +150,7 @@ class SyntheticAudioGenerator(ABC):
             )
             if has_generated_file:
                 current_audio_count += 1
+                audio_info = AudioInspector.get_info(sound_file_path)
                 generated_audio_info = SyntheticPhonemeMetadata(
                     file_name=sound_file_name,
                     file_path=str(sound_file_path),
@@ -161,7 +158,7 @@ class SyntheticAudioGenerator(ABC):
                     actual_phoneme_text=phoneme_text,
                     actual_phoneme_ipa=phoneme_ipa,
                     distortion_intensity=0.0,
-                    **voice.get_generation_info(),
+                    duration=audio_info.duration
                 )
                 generated_metadata.append(generated_audio_info)
         return current_audio_count, generated_metadata
@@ -228,6 +225,7 @@ class SyntheticAudioGenerator(ABC):
                     if distortion_intensity > 0.5:
                         dominant_phoneme_text = to_phoneme
                     distortion_ipa = f"distortion[{from_phoneme_ipa}({from_percentage}%)|{to_phoneme_ipa}({to_percentage}%)]"
+                    audio_info = AudioInspector.get_info(sound_file_path)
                     generated_audio_info = SyntheticPhonemeMetadata(
                         file_name=sound_file_name,
                         file_path=str(sound_file_path),
@@ -235,7 +233,7 @@ class SyntheticAudioGenerator(ABC):
                         actual_phoneme_text=dominant_phoneme_text,
                         actual_phoneme_ipa=distortion_ipa,
                         distortion_intensity=distortion_intensity,
-                        **voice.get_generation_info(),
+                        duration=audio_info.duration
                     )
                     generated_metadata.append(generated_audio_info)
         return current_audio_count, generated_metadata

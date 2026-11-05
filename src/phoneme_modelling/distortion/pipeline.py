@@ -10,6 +10,7 @@ from phoneme_modelling.distortion.distorter import AudioDistorter
 from phoneme_modelling.distortion.distorter_factory import AudioDistorterFactory
 from phoneme_modelling.schema.phoneme_pipeline_config import DistortionApplicationConfig, PhonemePipelineConfig
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
+from phoneme_modelling.util.audio_inspector import AudioInspector
 from phoneme_modelling.util.audio_validator import PhonemeAudioValidator
 from phoneme_modelling.util.retry_mechanism import GenerationRetryMechanism
 
@@ -158,13 +159,15 @@ class AudioDistortionPipeline():
                 break
         if distorted_ipa is None:
             distorted_ipa = original_phoneme_ipa
+        inspected_info = AudioInspector.get_info(target_file_path)
         metadata = SyntheticPhonemeMetadata(
             file_name=target_file_name,
             file_path=str(target_file_path),
             target_phoneme_text=audio_info.target_phoneme_text,
             actual_phoneme_text=original_phoneme_text,
             actual_phoneme_ipa=distorted_ipa,
-            distortion_intensity=intensity
+            distortion_intensity=intensity,
+            duration=inspected_info.duration
         )
         return has_generated, metadata
 
