@@ -8,10 +8,12 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "certifi>=2026.10.23",
     "google-genai>=2.33.0",
     "lhotse>=1.33.0",
     "librosa>=1.0.0",
     "onnxruntime>=1.31.1",
+    "openai>=3.46.0",
     "pandas>=3.1.0",
     "pydantic>=2.14.1",
     "torch>=2.14.1",
