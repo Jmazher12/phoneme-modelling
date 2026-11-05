@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 from pandas import DataFrame
@@ -140,7 +140,7 @@ class AudioDistortionPipeline():
                 sound_number=sound_number,
                 intensity_number=intensity_number
             )
-            if not has_generated:
+            if not has_generated or metadata is None:
                 continue
             current_audio_count += 1
             intensity_count += 1
@@ -157,7 +157,7 @@ class AudioDistortionPipeline():
         target_folder: Path,
         sound_number: str,
         intensity_number: str
-    ) -> tuple[bool, SyntheticPhonemeMetadata]:
+    ) -> tuple[bool, Optional[SyntheticPhonemeMetadata]]:
         original_file_path = Path(audio_info.file_path)
         original_phoneme_text = audio_info.actual_phoneme_text
         original_phoneme_ipa = audio_info.actual_phoneme_ipa
@@ -174,7 +174,9 @@ class AudioDistortionPipeline():
                 distorted_file_path=target_file_path,
             )
             if not has_generated:
-                break
+                return False, None
+        if not retry_mechanism.is_success(target_file_path):
+            return False, None
         if distorted_ipa is None:
             distorted_ipa = original_phoneme_ipa
         inspected_info = AudioInspector.get_info(target_file_path)

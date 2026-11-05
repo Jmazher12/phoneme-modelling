@@ -63,8 +63,8 @@ class SyntheticAudioGenerationVoice(ABC):
                 distort_to_ipa=distort_to_ipa
             )
             if not has_attempted_generation:
-                break
-        return has_attempted_generation
+                return False
+        return retry_mechanism.is_success(target_file_path)
 
     def __validate_audio_generation_input(
         self,

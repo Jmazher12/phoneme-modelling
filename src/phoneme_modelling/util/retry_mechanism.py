@@ -29,11 +29,14 @@ class GenerationRetryMechanism:
                 os.remove(file_path)
             yield attempt
             try:
-                if self.validator.validate(file_path):
+                if self.is_success(file_path):
                     break
             except AudioValidationError:
                 if attempt == self.max_attempts - 1:
                     raise
+
+    def is_success(self, file_path: Path) -> bool:
+        return self.validator.validate(file_path)
 
     def __determine_max_attempts(self) -> int:
         max_attempts = 1
