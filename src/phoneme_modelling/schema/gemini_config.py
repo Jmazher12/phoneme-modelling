@@ -1,16 +1,14 @@
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel
 
 
 
 class GeminiConfig(BaseModel):
-    project: str
+    project: str  # GCP project for Vertex AI
+    location: str  # Vertex AI region, e.g. us-central1
     model: str
-    location: str
     voices: list[str]
-    live: bool = False
-    ref_dir: Optional[Path] = None
-    ref_mode: str = "ref"
-    prompts_file: Optional[Path] = None
+    ref_dir: Path  # reference recordings <phoneme>.wav, sent with every prompt
+    prompts_file: Path  # csv with columns phoneme, phoneme_ipa, prompt
+    takes: int = 1

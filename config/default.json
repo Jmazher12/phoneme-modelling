@@ -1,5 +1,5 @@
 {
-    "number_of_digits": 3,
+    "number_of_digits": 4,
     "phonemes_to_generate": ["r", "s", "g", "b", "z", "l", "th_voiced", "th_voiceless", "sh", "ch", "k", "v", "j", "t", "d", "f", "ng", "y", "w", "h", "n", "m", "p"],
     "distortions_to_generate": [
         {
@@ -51,9 +51,18 @@
             "project": "sara-capstone",
             "model": "gemini-3.8-live",
             "location": "us-central1",
-            "voices": ["Kore"],
-            "live": true,
-            "prompts_file": "config/gemini_prompts.csv"
+            "voices": ["Aoede", "Charon", "Fenrir", "Kore", "Leda", "Orus", "Puck", "Zephyr"],
+            "prompts_file": "config/prompts.csv",
+            "takes": 3,
+            "ref_dir": "inputs/reference_recordings"
+        },
+        "openai": {
+            "model": "gpt-realtime-2.1",
+            "voices": ["alloy", "ash", "ballad", "cedar", "coral", "echo", "marin", "sage", "shimmer", "verse"],
+            "min_peak": 0.05,
+            "prompts_file": "config/prompts.csv",
+            "takes": 3,
+            "ref_dir": "inputs/reference_recordings"
         }
     },
     "distorter_configs": {
