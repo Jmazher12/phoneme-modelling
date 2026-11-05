@@ -43,9 +43,9 @@ def load_prompts(prompts_file: Path) -> dict[str, PhonemePrompt]:
     return {row["phoneme"]: PhonemePrompt.model_validate(row) for row in rows}
 
 
-def build_reference_message(phoneme: str, prompts: dict[str, PhonemePrompt], ref_dir: Path) -> tuple[bytes, str, Path]:
-    """The reference recording ref_dir/<phoneme>.wav as 16 kHz mono PCM, the text sent after it (REF_INTRO + the
-    phoneme's prompt), and the recording's path."""
+def build_reference_message(phoneme: str, prompts: dict[str, PhonemePrompt], ref_dir: Path) -> tuple[bytes, str]:
+    """The reference recording ref_dir/<phoneme>.wav as 16 kHz mono PCM, and the text sent after it (REF_INTRO + the
+    phoneme's prompt)."""
     path = ref_dir / f"{phoneme}.wav"
     if not path.exists():
         raise MissingReferenceError(f"No reference recording for {phoneme} at {path}")
@@ -53,4 +53,4 @@ def build_reference_message(phoneme: str, prompts: dict[str, PhonemePrompt], ref
         raise MissingReferenceError(f"No prompt for {phoneme} in the prompts file")
     row = prompts[phoneme]
     intro = REF_INTRO.format(name=phoneme.replace("_", " ").upper(), ipa=row.phoneme_ipa)
-    return load_as_pcm16(path), f"{intro}\n\n{row.prompt}", path
+    return load_as_pcm16(path), f"{intro}\n\n{row.prompt}"

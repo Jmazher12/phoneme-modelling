@@ -78,9 +78,9 @@ def prep_clip(source: Path, target: Path, seed: int = 0) -> None:
     save_wav(target, (np.clip(clip, -1.0, 1.0) * 32767).astype(np.int16).tobytes(), sr)
 
 
-def save_raw_and_prepped(pcm: bytes, rate: int, target: Path) -> tuple[Path, bool]:
+def save_raw_and_prepped(pcm: bytes, rate: int, target: Path) -> bool:
     """Saves the model's answer to raw/<name> next to target and the prepped clip to target. Answers over 3 s are cropped
-    first (the crop is kept as raw/<stem>_crop.wav). Returns the raw file and whether it was cropped."""
+    first (the crop is kept as raw/<stem>_crop.wav). Returns whether it was cropped."""
     raw = target.parent / "raw" / target.name
     save_wav(raw, pcm, rate)
     source, cropped = raw, seconds(pcm, rate) > 3.0
@@ -88,4 +88,4 @@ def save_raw_and_prepped(pcm: bytes, rate: int, target: Path) -> tuple[Path, boo
         source = raw.with_name(f"{target.stem}_crop.wav")
         save_wav(source, crop_to_onset(pcm, rate), rate)
     prep_clip(source, target)
-    return raw, cropped
+    return cropped

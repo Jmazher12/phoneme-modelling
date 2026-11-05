@@ -94,10 +94,9 @@ class OpenAIAudioVoice(SyntheticAudioGenerationVoice):
         distort_to_text: Optional[str] = None,
         distort_to_ipa: Optional[str] = None,
     ) -> bool:
-        self._generation_info = {}
         label = f"{target_file_path.stem} ({self.model}, {self.voice_name})"
         try:
-            reference_pcm, message, reference_path = build_reference_message(text, self.prompts, self.ref_dir)
+            reference_pcm, message = build_reference_message(text, self.prompts, self.ref_dir)
             pcm, transcript = self.__run_realtime_session(reference_pcm, message)
         except MissingReferenceError as e:
             print(f"FAILED {label}: {e}")
@@ -113,19 +112,8 @@ class OpenAIAudioVoice(SyntheticAudioGenerationVoice):
             save_wav(target_file_path.parent / "raw" / f"{target_file_path.stem}_too_quiet.wav", pcm, rate)
             print(f"FAILED {label}: too quiet (peak {peak(pcm):.3f}), not prepped")
             return False
-        raw_path, cropped = save_raw_and_prepped(pcm, rate, target_file_path)
+        cropped = save_raw_and_prepped(pcm, rate, target_file_path)
         print(f"{label}: {seconds(pcm, rate):.1f}s, peak {peak(pcm):.2f}{', cropped' if cropped else ''}, model said {transcript!r}")
-        self._generation_info = {
-            "model": self.model,
-            "voice": self.voice_name,
-            "take": self.take,
-            "reference_audio": str(reference_path),
-            "prompt": message,
-            "transcript": transcript,
-            "raw_file_path": str(raw_path),
-            "raw_seconds": round(seconds(pcm, rate), 2),
-            "cropped": cropped,
-        }
         return True
 
 
