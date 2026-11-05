@@ -36,7 +36,7 @@
         }
     ],
     "distortion_application_config": {
-        "distortion_intensitites": [0.5]
+        "distortion_intensitites": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     },
     "validation_config":{
         "interrupt_generation_on_missing_file": false,
@@ -66,7 +66,16 @@
         }
     },
     "distorter_configs": {
-        "debug": null
+        "r_to_w": null,
+        "r_to_w_matched": null,
+        "s_to_z": null,
+        "s_to_z_matched": null,
+        "p_to_b": null,
+        "p_to_b_matched": null,
+        "th_voiced_to_th_voiceless": null,
+        "th_voiced_to_th_voiceless_matched": null,
+        "m_to_n": null,
+        "m_to_n_matched": null
     },
     "evaluator_configs": {
         "wav2vec2": null,
