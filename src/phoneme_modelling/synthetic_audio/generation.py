@@ -8,30 +8,11 @@ from pydantic import BaseModel
 
 from phoneme_modelling.phonemes import TEXT_TO_IPA, VALID_IPA_STRINGS, VALID_SOUND_TEXTS
 from phoneme_modelling.schema.phoneme_distortion import PhonemeDistortionRequest
-from phoneme_modelling.schema.phoneme_pipeline_config import PhonemePipelineConfig
+from phoneme_modelling.schema.phoneme_pipeline_config import PhonemePipelineConfig, PhonemeValidationConfig
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
+from phoneme_modelling.util.audio_validator import PhonemeAudioValidator
+from phoneme_modelling.util.retry_mechanism import GenerationRetryMechanism
 
-
-
-class FailedAudioGenerationError(Exception):
-
-    def __init__(
-        self,
-        target_file_path: Path,
-        text: str,
-        ipa: str,
-        distortion_intensity: Optional[float] = None,
-        distort_to_text: Optional[str] = None,
-        distort_to_ipa: Optional[str] = None,
-    ):
-        generation_inputs = {
-            text,
-            ipa,
-            distortion_intensity,
-            distort_to_text,
-            distort_to_ipa
-        }
-        super().__init__(f"Failed to generate synthetic audio. No file found at {target_file_path}. Generation inputs: {generation_inputs}")
 
 
 class SyntheticAudioGenerationVoice(ABC):
@@ -54,6 +35,7 @@ class SyntheticAudioGenerationVoice(ABC):
 
     def run_audio_generation(
         self,
+        retry_mechanism: GenerationRetryMechanism,
         target_file_path: Path,
         text: str,
         ipa: str,
@@ -61,6 +43,37 @@ class SyntheticAudioGenerationVoice(ABC):
         distort_to_text: Optional[str] = None,
         distort_to_ipa: Optional[str] = None,
     ) -> bool:
+        self.__validate_audio_generation_input(
+            target_file_path=target_file_path,
+            text=text,
+            ipa=ipa,
+            distortion_intensity=distortion_intensity,
+            distort_to_text=distort_to_text,
+            distort_to_ipa=distort_to_ipa
+        )
+        has_attempted_generation = False
+        for _ in retry_mechanism.attempts(target_file_path):
+            has_attempted_generation = self._generate_audio(
+                target_file_path=target_file_path,
+                text=text,
+                ipa=ipa,
+                distortion_intensity=distortion_intensity,
+                distort_to_text=distort_to_text,
+                distort_to_ipa=distort_to_ipa
+            )
+            if not has_attempted_generation:
+                break
+        return has_attempted_generation
+
+    def __validate_audio_generation_input(
+        self,
+        target_file_path: Path,
+        text: str,
+        ipa: str,
+        distortion_intensity: Optional[float] = None,
+        distort_to_text: Optional[str] = None,
+        distort_to_ipa: Optional[str] = None,
+    ):
         if not target_file_path or os.path.exists(target_file_path):
             raise ValueError(f"Invalid target_file_path for synthetic audio generation sent to {self.__name__}. target_file_path: {target_file_path}")
         if not text:
@@ -78,25 +91,6 @@ class SyntheticAudioGenerationVoice(ABC):
             raise ValueError(f"distortion_intensity must be between 0.0 and 1.0. distortion_intensity: {distortion_intensity}")
         if distort_to_ipa is not None and distort_to_ipa not in VALID_IPA_STRINGS:
             raise ValueError(f"Invalid distort_to_ipa for synthetic audio generation sent to {self.__name__}. distort_to_ipa: {distort_to_ipa}")
-        has_attempted_generation = self._generate_audio(
-            target_file_path=target_file_path,
-            text=text,
-            ipa=ipa,
-            distortion_intensity=distortion_intensity,
-            distort_to_text=distort_to_text,
-            distort_to_ipa=distort_to_ipa
-        )
-        if has_attempted_generation and not os.path.exists(target_file_path):
-            raise FailedAudioGenerationError(
-                target_file_path=target_file_path,
-                text=text,
-                ipa=ipa,
-                distortion_intensity=distortion_intensity,
-                distort_to_text=distort_to_text,
-                distort_to_ipa=distort_to_ipa
-            )
-        return has_attempted_generation
-
 
 class SyntheticAudioGenerator(ABC):
 
@@ -147,7 +141,8 @@ class SyntheticAudioGenerator(ABC):
             nickname = voice.get_voice_nickname()
             sound_file_name = f"{sound_number}_{phoneme_text}_{nickname}.wav"
             sound_file_path = Path(os.path.join(target_folder, sound_file_name))
-            has_generated_file = voice._generate_audio(
+            has_generated_file = voice.run_audio_generation(
+                retry_mechanism=self.__retry_mechanism,
                 target_file_path=sound_file_path,
                 text=phoneme_text,
                 ipa=phoneme_ipa
@@ -212,7 +207,8 @@ class SyntheticAudioGenerator(ABC):
                 to_percentage_text = f"{to_percentage:03d}"
                 sound_file_name = f"{sound_number}_{from_phoneme}_{from_percentage_text}_{to_phoneme}_{to_percentage_text}_{nickname}.wav"
                 sound_file_path = Path(os.path.join(target_folder, sound_file_name))
-                has_generated_file = voice._generate_audio(
+                has_generated_file = voice.run_audio_generation(
+                    retry_mechanism=self.__retry_mechanism,
                     target_file_path=sound_file_path,
                     text=from_phoneme,
                     ipa=from_phoneme_ipa,
@@ -237,6 +233,13 @@ class SyntheticAudioGenerator(ABC):
                     generated_metadata.append(generated_audio_info)
         return current_audio_count, generated_metadata
 
+    def __build_retry_mechanism(self, generation_request: PhonemePipelineConfig) -> GenerationRetryMechanism:
+        config = generation_request.validation_config
+        allow_retries = self.allows_retries()
+        validator = PhonemeAudioValidator(config)
+        retry_mechanism = GenerationRetryMechanism(config, validator, allow_retries)
+        return retry_mechanism
+
     def generate_synthetic_audios(
         self,
         generation_request: PhonemePipelineConfig,
@@ -246,6 +249,7 @@ class SyntheticAudioGenerator(ABC):
         generated_metadata = []
         phonemes_to_generate = generation_request.phonemes_to_generate
         self.__number_of_digits = generation_request.number_of_digits
+        self.__retry_mechanism = self.__build_retry_mechanism(generation_request)
         for phoneme_text in phonemes_to_generate:
             current_audio_count, phoneme_metadata = self.__generate_phoneme_from_text(
                 phoneme_text=phoneme_text,

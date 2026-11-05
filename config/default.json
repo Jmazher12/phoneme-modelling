@@ -38,6 +38,14 @@
     "distortion_application_config": {
         "distortion_intensitites": [0.5]
     },
+    "validation_config":{
+        "interrupt_generation_on_missing_file": false,
+        "min_audio_length": 0.1,
+        "interrupt_generation_on_short_audio": false,
+        "max_audio_length": 10.0,
+        "interrupt_generation_on_long_audio": false,
+        "max_number_of_retries": 3
+    },
     "generator_configs": {
         "gemini": {
             "project": "sara-capstone",
