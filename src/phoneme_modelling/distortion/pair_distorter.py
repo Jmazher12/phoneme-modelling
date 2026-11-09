@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from phoneme_modelling.distortion.distorter import AudioDistorter
 from phoneme_modelling.phonemes import TEXT_TO_IPA
-from phoneme_modelling.schema.pair_parameters import CueCheck, NuisanceSample, PairParameters
+from phoneme_modelling.schema.pair_parameters import NuisanceSample, PairParameters
 from phoneme_modelling.util.acoustics import dsp
 from phoneme_modelling.util.acoustics.clip import Clip
 from phoneme_modelling.util.acoustics.delivery import OUTPUT_PEAK, SAMPLE_RATE, as_clip, deliver, save_wav, stable_rng
@@ -18,8 +18,7 @@ from phoneme_modelling.util.loaders import load_as_numpy_array
 
 PARAMETERS_FOLDER = Path(__file__).resolve().parents[3] / "config" / "distortion"
 DEFAULT_F0 = 150.0
-INTENSITY_POINTS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
-MATCHED_INTENSITIES = [0.0, 0.6, 1.0]
+INTENSITIES = (0.6, 1.0)
 DURATION_JITTER = 0.1
 LEVEL_JITTER_DB = 2.0
 MIN_GAIN_DB = -30.0
@@ -31,15 +30,21 @@ class PairDistorter(AudioDistorter):
     """Turns a clean recording of FROM_PHONEME into a graded error toward TO_PHONEME.
 
     Subclasses are one specific pair: they set the two sounds, a name, and the edit in ``_apply``. With MATCH_NUISANCE,
-    the clip also takes the length, pitch and level of the other label, so those can't give the label away.
+    the clip also takes the length, pitch and level of a correct clip, so those can't give the label away. Only the
+    strengths in INTENSITIES are made; any other strength is skipped.
+
+    PAIR_NAME (the settings file) and TO_IPA (the label) default to the two sounds; a distortion that is not a
+    substitution, such as the distorted R, sets them itself.
     """
 
     FROM_PHONEME: str
     TO_PHONEME: str
+    PAIR_NAME: Optional[str] = None
+    TO_IPA: Optional[str] = None
     MATCH_NUISANCE = False
 
     def __init__(self, config: Optional[BaseModel] = None):
-        self.__pair_name = f"{self.FROM_PHONEME}_to_{self.TO_PHONEME}"
+        self.__pair_name = self.PAIR_NAME or f"{self.FROM_PHONEME}_to_{self.TO_PHONEME}"
         parameters_text = (PARAMETERS_FOLDER / f"{self.__pair_name}.json").read_text(encoding="utf-8")
         self.parameters = PairParameters.model_validate_json(parameters_text)
         voice_f0 = json.loads((PARAMETERS_FOLDER / "voice_f0.json").read_text(encoding="utf-8"))
@@ -60,9 +65,13 @@ class PairDistorter(AudioDistorter):
         """Returns whether the generation method is non-deterministic and can yield a different result if retried."""
         return False
 
-    def alpha_for(self, distortion_intensity: float) -> float:
-        """Calibrated edit strength: intensity n/5 reaches n/5 of the natural difference between the two sounds."""
-        return float(np.interp(distortion_intensity, INTENSITY_POINTS, [0.0, *self.parameters.severity_alpha]))
+    def alpha_for(self, distortion_intensity: float) -> Optional[float]:
+        """Calibrated edit strength: 0.6 reaches 60% of the natural difference between the two sounds, 1 all of it.
+        None for a strength that is not in INTENSITIES."""
+        for intensity, alpha in self.parameters.intensity_alpha.items():
+            if np.isclose(distortion_intensity, intensity) and np.isclose(INTENSITIES, intensity).any():
+                return float(alpha)
+        return None
 
     def distort(
         self,
@@ -77,19 +86,18 @@ class PairDistorter(AudioDistorter):
         true if successful or false if the audio was rejected and optionally the ipa representation for the distorted
         audio.
         """
-        if self.MATCH_NUISANCE and not np.isclose(distortion_intensity, MATCHED_INTENSITIES).any():
+        alpha = self.alpha_for(distortion_intensity)
+        if alpha is None:
             return False, None
         samples = load_as_numpy_array(original_file_path, SAMPLE_RATE).astype(np.float64)
         if dsp.rms(samples) == 0.0:
             return False, None
         # The leading number is the pipeline's running counter; leaving it out keeps audio independent of run order.
         seed_name = original_file_path.stem.partition("_")[2]
-        is_error = distortion_intensity > 0.0
-        measured_as = self.TO_PHONEME if is_error else self.FROM_PHONEME
         try:
-            delivered = self.__distort_samples(samples, seed_name, distortion_intensity)
+            delivered = self.__distort_samples(samples, seed_name, distortion_intensity, alpha)
             if self.MATCH_NUISANCE:
-                delivered = self.__match_nuisance(delivered, measured_as, is_error, seed_name, distortion_intensity)
+                delivered = self.__match_nuisance(delivered, seed_name, distortion_intensity)
         except (ValueError, IndexError, RuntimeError) as error:  # one bad clip must not stop the batch
             print(f"Rejected {original_file_path} for {self.get_name()}: {error}")
             return False, None
@@ -98,14 +106,13 @@ class PairDistorter(AudioDistorter):
         save_wav(distorted_file_path, delivered)
         return True, self.__distorted_ipa(distortion_intensity)
 
-    def __distort_samples(self, samples: np.ndarray, seed_name: str, distortion_intensity: float) -> np.ndarray:
+    def __distort_samples(
+        self, samples: np.ndarray, seed_name: str, distortion_intensity: float, alpha: float
+    ) -> np.ndarray:
         name = f"{seed_name}_{self.__pair_name}_{distortion_intensity:g}"
-        edited = samples
-        if distortion_intensity > 0.0:
-            clip = segment_sound(samples, SAMPLE_RATE, self.FROM_PHONEME)
-            measures = measure_sound(clip, self.FROM_PHONEME)
-            alpha = self.alpha_for(distortion_intensity)
-            edited = self._apply(clip, measures, alpha, self.__find_voice_f0(seed_name), stable_rng(name))
+        clip = segment_sound(samples, SAMPLE_RATE, self.FROM_PHONEME)
+        measures = measure_sound(clip, self.FROM_PHONEME)
+        edited = self._apply(clip, measures, alpha, self.__find_voice_f0(seed_name), stable_rng(name))
         gain = OUTPUT_PEAK / (float(np.max(np.abs(samples))) + 1e-12)
         return deliver(edited, as_clip(samples), stable_rng(name)) * gain
 
@@ -113,23 +120,22 @@ class PairDistorter(AudioDistorter):
         """The voice is the last part of a clip's name (``{phoneme}_{voice}``); pitch can't come from voiceless sounds."""
         return self.__voice_f0.get(seed_name.rpartition("_")[2].lower(), DEFAULT_F0)
 
-    def __distorted_ipa(self, distortion_intensity: float) -> Optional[str]:
-        if distortion_intensity == 0.0:
-            return None
+    def __distorted_ipa(self, distortion_intensity: float) -> str:
         from_percentage = int(round((1 - distortion_intensity) * 100))
         to_percentage = int(round(distortion_intensity * 100))
-        from_ipa, to_ipa = TEXT_TO_IPA[self.FROM_PHONEME], TEXT_TO_IPA[self.TO_PHONEME]
+        from_ipa, to_ipa = TEXT_TO_IPA[self.FROM_PHONEME], self.TO_IPA or TEXT_TO_IPA[self.TO_PHONEME]
         return f"distortion[{from_ipa}({from_percentage}%)|{to_ipa}({to_percentage}%)]"
 
     def __match_nuisance(
-        self, natural: np.ndarray, measured_as: str, is_error: bool, seed_name: str, distortion_intensity: float
+        self, natural: np.ndarray, seed_name: str, distortion_intensity: float
     ) -> Optional[np.ndarray]:
-        """Move the clip's length, pitch and level to those of a clip of the other label, shrinking the edit while it
-        would change the sound's defining cues, and leaving length and pitch alone if it still does."""
+        """Move the clip's length, pitch and level to those of a correct clip, shrinking the edit while it would
+        change the error's defining cues, and leaving length and pitch alone if it still does."""
         name = f"{seed_name}_{self.__pair_name}_{distortion_intensity:g}"
+        measured_as = self.TO_PHONEME
         before = measure_as(natural, SAMPLE_RATE, measured_as)
         own_duration = float(before["duration_ms"])
-        others = self.parameters.correct_clips if is_error else self.parameters.error_clips
+        others = self.parameters.correct_clips
         if not others or not np.isfinite(own_duration):
             return None
         plan_rng = stable_rng(name, "plan")
@@ -138,7 +144,7 @@ class PairDistorter(AudioDistorter):
         semitones = self.__plan_pitch_shift(before, measured_as, seed_name, others, plan_rng)
         level_target = others[int(plan_rng.integers(len(others)))].rms_dbfs + float(plan_rng.normal(0, LEVEL_JITTER_DB))
 
-        checks = self.__guard_checks(is_error)
+        checks = [(check.cue, check.natural_gap, check.cue in RATIO_MEASURES) for check in self.parameters.error_checks]
         rng = stable_rng(name, "hard")
         background = as_clip(natural)
         delivered = None
@@ -147,7 +153,7 @@ class PairDistorter(AudioDistorter):
                 edited = retime(natural, SAMPLE_RATE, measured_as, factor, rng)
                 edited = shift_pitch(edited, SAMPLE_RATE, semitones) if semitones else edited
                 candidate = deliver(edited, background, rng)
-                if guard(before, measure_as(candidate, SAMPLE_RATE, measured_as), checks, is_error):
+                if guard(before, measure_as(candidate, SAMPLE_RATE, measured_as), checks, is_error=True):
                     delivered = candidate
                     break
             except (ValueError, IndexError, RuntimeError):  # treated like a failed guard: retry smaller, then fall back
@@ -177,7 +183,3 @@ class PairDistorter(AudioDistorter):
             return 0.0
         target_f0 = same_voice[int(rng.integers(len(same_voice)))]
         return float(np.clip(12 * np.log2(target_f0 / own_f0), -MAX_SEMITONES, MAX_SEMITONES))
-
-    def __guard_checks(self, is_error: bool) -> list[tuple[str, float, bool]]:
-        checks: list[CueCheck] = self.parameters.error_checks if is_error else self.parameters.correct_checks
-        return [(check.cue, check.natural_gap, check.cue in RATIO_MEASURES) for check in checks]

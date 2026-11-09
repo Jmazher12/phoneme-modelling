@@ -1,7 +1,7 @@
 import numpy as np
 
 from phoneme_modelling.distortion.pair_distorter import PairDistorter
-from phoneme_modelling.distortion.recipes import voice_stop
+from phoneme_modelling.distortion.recipes import change_stop
 from phoneme_modelling.util.acoustics.clip import Clip
 
 
@@ -18,7 +18,7 @@ class PToBDistorter(PairDistorter):
     def _apply(
         self, clip: Clip, measures: dict[str, object], alpha: float, voice_f0: float, rng: np.random.Generator
     ) -> np.ndarray:
-        return voice_stop(clip, measures, alpha, self.parameters, voice_f0, rng)
+        return change_stop(clip, measures, alpha, self.parameters, voice_f0, rng, voicing="on", place=False)
 
 
 class PToBMatchedDistorter(PToBDistorter):

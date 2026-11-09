@@ -22,8 +22,8 @@ def sample(duration_ms: float) -> NuisanceSample:
     return NuisanceSample(duration_ms=duration_ms, rms_dbfs=-20.0, voice="kore")
 
 
-@pytest.mark.parametrize("intensity", [0.2, 0.4, 0.8])
-def test_only_runs_at_the_matched_intensities(intensity: float, sound_files: dict[str, Path], tmp_path: Path) -> None:
+@pytest.mark.parametrize("intensity", [0.0, 0.2, 0.4, 0.8])
+def test_only_runs_at_the_supported_intensities(intensity: float, sound_files: dict[str, Path], tmp_path: Path) -> None:
     target = tmp_path / "out.wav"
     assert run(RToWMatchedDistorter(), sound_files["r"], intensity, target) == (False, None)
     assert not target.exists()
@@ -37,20 +37,9 @@ def test_error_clip_takes_the_length_of_a_correct_clip(sound_files: dict[str, Pa
     run(MToNDistorter(), sound_files["m"], 1.0, plain)
     generated, ipa = run(distorter, sound_files["m"], 1.0, matched)
     assert generated
-    assert ipa is not None
+    assert ipa == "distortion[m(0%)|n(100%)]"
     assert speech_ms(matched) == pytest.approx(1000.0, rel=0.25)
     assert speech_ms(matched) > speech_ms(plain) * 1.3
-
-
-def test_correct_clip_takes_the_length_of_an_error_clip(sound_files: dict[str, Path], tmp_path: Path) -> None:
-    distorter = MToNMatchedDistorter()
-    distorter.parameters.error_clips = [sample(1000.0)]
-    distorter.parameters.correct_checks = []
-    target = tmp_path / "out.wav"
-    generated, ipa = run(distorter, sound_files["m"], 0.0, target)
-    assert generated
-    assert ipa is None
-    assert speech_ms(target) == pytest.approx(1000.0, rel=0.25)
 
 
 def test_edit_that_keeps_damaging_the_sound_falls_back_to_the_original_length(
@@ -58,7 +47,7 @@ def test_edit_that_keeps_damaging_the_sound_falls_back_to_the_original_length(
 ) -> None:
     calls = []
 
-    def always_fails(*args: object) -> bool:
+    def always_fails(*args: object, **kwargs: object) -> bool:
         calls.append(args)
         return False
 

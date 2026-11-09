@@ -37,12 +37,20 @@ def padded(sound: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     return np.concatenate([pad, sound, pad])
 
 
-def stop(rng: np.random.Generator) -> np.ndarray:
+def stop(rng: np.random.Generator, voiced: bool = False, frication_ms: float = 0.0) -> np.ndarray:
+    """Closure, burst, release noise and a vowel. Voiced stops get a voice bar in the closure and a short release;
+    ``frication_ms`` adds a long hiss after the burst (an affricate)."""
     burst = rng.standard_normal(seconds(0.008)) * np.exp(-np.linspace(0, 4, seconds(0.008)))
+    closure = 1e-4 * rng.standard_normal(seconds(0.3))
+    if voiced:
+        closure[-seconds(0.06) :] += 0.05 * dsp.lowpass(voiced_sound(0.06), RATE, 500.0, order=4)
+    release = hiss(0.015 if voiced else 0.05, 1000.0, rng, level=0.15)
+    if frication_ms:
+        release = hiss(frication_ms / 1000, 2500.0, rng, level=0.3)
     parts = [
-        1e-4 * rng.standard_normal(seconds(0.3)),
+        closure,
         0.8 * dsp.highpass(burst, RATE, 1500.0, order=2),
-        hiss(0.05, 1000.0, rng, level=0.15),
+        release,
         voiced_sound(0.08),
         1e-4 * rng.standard_normal(seconds(0.3)),
     ]
@@ -59,10 +67,27 @@ def sound_files(tmp_path: Path, rng: np.random.Generator) -> dict[str, Path]:
     """A synthetic recording of each source sound, named the way the pipeline names clips."""
     sounds = {
         "r": padded(voiced_sound(0.5, formants=(400.0, 1100.0, 1700.0)), rng),
+        "l": padded(voiced_sound(0.5, formants=(380.0, 1000.0, 2700.0)), rng),
+        "w": padded(voiced_sound(0.5, formants=(300.0, 700.0, 2200.0)), rng),
+        "y": padded(voiced_sound(0.5, formants=(280.0, 2200.0, 3000.0)), rng),
         "s": padded(hiss(0.6, 4000.0, rng), rng),
-        "p": stop(rng),
+        "sh": padded(hiss(0.6, 2000.0, rng), rng),
+        "f": padded(hiss(0.5, 1000.0, rng, level=0.1), rng),
+        "th_voiceless": padded(hiss(0.5, 1500.0, rng, level=0.1), rng),
+        "z": padded(voiced_sound(0.5, formants=(250.0, 1500.0, 2500.0)) * 0.3 + hiss(0.5, 4000.0, rng), rng),
+        "v": padded(voiced_sound(0.4, formants=(300.0, 1200.0, 2400.0)) + hiss(0.4, 1000.0, rng, 0.05), rng),
         "th_voiced": padded(voiced_sound(0.4, formants=(300.0, 1400.0, 2600.0)) + hiss(0.4, 3000.0, rng, 0.05), rng),
         "m": padded(voiced_sound(0.5, formants=(250.0, 1000.0, 2200.0)), rng),
+        "n": padded(voiced_sound(0.5, formants=(250.0, 1400.0, 2500.0)), rng),
+        "ng": padded(voiced_sound(0.5, formants=(250.0, 1800.0, 2400.0)), rng),
+        "p": stop(rng),
+        "t": stop(rng),
+        "k": stop(rng),
+        "b": stop(rng, voiced=True),
+        "d": stop(rng, voiced=True),
+        "g": stop(rng, voiced=True),
+        "ch": stop(rng, frication_ms=150.0),
+        "j": stop(rng, voiced=True, frication_ms=120.0),
     }
     paths = {}
     for key, samples in sounds.items():

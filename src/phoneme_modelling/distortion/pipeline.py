@@ -6,16 +6,9 @@ from pandas import DataFrame
 from pathlib import Path
 
 from phoneme_modelling.distortion.distorters.debug import DebugDistorter
-from phoneme_modelling.distortion.distorters.m_to_n import MToNDistorter, MToNMatchedDistorter
-from phoneme_modelling.distortion.distorters.p_to_b import PToBDistorter, PToBMatchedDistorter
-from phoneme_modelling.distortion.distorters.r_to_w import RToWDistorter, RToWMatchedDistorter
-from phoneme_modelling.distortion.distorters.s_to_z import SToZDistorter, SToZMatchedDistorter
-from phoneme_modelling.distortion.distorters.th_voiced_to_th_voiceless import (
-    ThVoicedToThVoicelessDistorter,
-    ThVoicedToThVoicelessMatchedDistorter,
-)
 from phoneme_modelling.distortion.distorter import AudioDistorter
 from phoneme_modelling.distortion.distorter_factory import AudioDistorterFactory
+from phoneme_modelling.distortion.pair_registry import PAIR_DISTORTERS
 from phoneme_modelling.schema.phoneme_pipeline_config import DistortionApplicationConfig, PhonemePipelineConfig
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
 from phoneme_modelling.util.audio_inspector import AudioInspector
@@ -29,16 +22,8 @@ class AudioDistortionPipeline():
     def build_distorters(configs: dict[str, Any]) -> list[AudioDistorter]:
         factory = AudioDistorterFactory()
         factory.register(DebugDistorter, None)
-        factory.register(RToWDistorter, None)
-        factory.register(RToWMatchedDistorter, None)
-        factory.register(SToZDistorter, None)
-        factory.register(SToZMatchedDistorter, None)
-        factory.register(PToBDistorter, None)
-        factory.register(PToBMatchedDistorter, None)
-        factory.register(ThVoicedToThVoicelessDistorter, None)
-        factory.register(ThVoicedToThVoicelessMatchedDistorter, None)
-        factory.register(MToNDistorter, None)
-        factory.register(MToNMatchedDistorter, None)
+        for pair_distorter in PAIR_DISTORTERS:
+            factory.register(pair_distorter, None)
         return factory.generate(configs)
 
     @classmethod
