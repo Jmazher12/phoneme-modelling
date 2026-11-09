@@ -1,4 +1,5 @@
 import json
+import re
 from abc import abstractmethod
 from pathlib import Path
 from typing import Optional
@@ -24,6 +25,12 @@ LEVEL_JITTER_DB = 2.0
 MIN_GAIN_DB = -30.0
 MAX_PEAK_DBFS = -1.0
 MAX_GUARD_RETRIES = 3
+TAKE_SUFFIX = re.compile(r"_take\d+$")
+
+
+def voice_of(seed_name: str) -> str:
+    """The voice in a clip's name, ``{phoneme}_{voice}`` or ``{phoneme}_{voice}_take{n}`` when there are several takes."""
+    return TAKE_SUFFIX.sub("", seed_name).rpartition("_")[2].lower()
 
 
 class PairDistorter(AudioDistorter):
@@ -117,8 +124,8 @@ class PairDistorter(AudioDistorter):
         return deliver(edited, as_clip(samples), stable_rng(name)) * gain
 
     def __find_voice_f0(self, seed_name: str) -> float:
-        """The voice is the last part of a clip's name (``{phoneme}_{voice}``); pitch can't come from voiceless sounds."""
-        return self.__voice_f0.get(seed_name.rpartition("_")[2].lower(), DEFAULT_F0)
+        """The voice's typical F0 (pitch can't be measured on voiceless sounds), from the clip's name."""
+        return self.__voice_f0.get(voice_of(seed_name), DEFAULT_F0)
 
     def __distorted_ipa(self, distortion_intensity: float) -> str:
         from_percentage = int(round((1 - distortion_intensity) * 100))
@@ -177,7 +184,7 @@ class PairDistorter(AudioDistorter):
     ) -> float:
         """Semitones to another clip of the same voice, for voiced sounds only (see ``shift_pitch``)."""
         own_f0 = float(before["f0_hz"])
-        voice = seed_name.rpartition("_")[2].lower()
+        voice = voice_of(seed_name)
         same_voice = [other.f0_hz for other in others if other.voice == voice and other.f0_hz is not None]
         if not np.isfinite(own_f0) or not SOUNDS[measured_as].voiced or not same_voice:
             return 0.0

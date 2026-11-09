@@ -5,7 +5,8 @@
     ],
     "distortion_application_config": {
         "distortion_intensitites": [
-            0.5
+            0.6,
+            1.0
         ]
     },
     "validation_config": {

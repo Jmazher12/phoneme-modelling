@@ -11,11 +11,15 @@ from phoneme_modelling.distortion.distorter import AudioDistorter
 from phoneme_modelling.distortion.distorters.r_distortion import RDistortionDistorter
 from phoneme_modelling.distortion.distorters.r_to_w import RToWDistorter
 from phoneme_modelling.distortion.distorters.s_to_z import SToZDistorter
-from phoneme_modelling.distortion.pair_distorter import INTENSITIES, PARAMETERS_FOLDER, PairDistorter
+from phoneme_modelling.distortion.pair_distorter import INTENSITIES, PARAMETERS_FOLDER, PairDistorter, voice_of
 from phoneme_modelling.distortion.pair_registry import PAIR_DISTORTERS
 from phoneme_modelling.distortion.pipeline import AudioDistortionPipeline
 from phoneme_modelling.phonemes import TEXT_TO_IPA
-from phoneme_modelling.schema.phoneme_pipeline_config import DistortionApplicationConfig, PhonemePipelineConfig
+from phoneme_modelling.schema.phoneme_pipeline_config import (
+    DistortionApplicationConfig,
+    PhonemePipelineConfig,
+    PhonemeValidationConfig,
+)
 from phoneme_modelling.schema.synthetic_phoneme_metadata import SyntheticPhonemeMetadata
 from phoneme_modelling.util.acoustics import landmarks
 from phoneme_modelling.util.acoustics.measures import measure_as
@@ -128,6 +132,11 @@ def test_same_input_gives_the_same_audio_whatever_the_file_counter(
     assert (tmp_path / "a.wav").read_bytes() == (tmp_path / "b.wav").read_bytes()
 
 
+@pytest.mark.parametrize("seed_name", ["r_kore", "th_voiced_kore", "r_Kore_take2", "th_voiced_kore_take12"])
+def test_voice_is_read_from_the_clip_name_with_or_without_a_take(seed_name: str) -> None:
+    assert voice_of(seed_name) == "kore"
+
+
 def test_silent_recording_is_rejected(tmp_path: Path) -> None:
     silent = tmp_path / "000_r_kore.wav"
     sf.write(silent, np.zeros(seconds(1.0)), RATE, subtype="PCM_16")
@@ -184,10 +193,13 @@ def test_pipeline_makes_both_intensities_and_skips_other_sounds(sound_files: dic
         SyntheticPhonemeMetadata(
             file_name=path.name,
             file_path=str(path),
+            model="gemini",
+            voice="kore",
             target_phoneme_text=key,
             actual_phoneme_text=key,
             actual_phoneme_ipa=TEXT_TO_IPA[key],
             distortion_intensity=0.0,
+            duration=1.0,
         ).model_dump()
         for key, path in sound_files.items()
         if key in ("r", "s")
@@ -198,6 +210,7 @@ def test_pipeline_makes_both_intensities_and_skips_other_sounds(sound_files: dic
         number_of_digits=3,
         phonemes_to_generate=["r"],
         distortion_application_config=DistortionApplicationConfig(distortion_intensitites=list(INTENSITIES)),
+        validation_config=PhonemeValidationConfig(),
         generator_configs={},
         distorter_configs={"r_to_w": None, "r_to_w_matched": None},
     )
